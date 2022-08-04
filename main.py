@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 directory = ""
 
-DROPBOX_ACCESS_TOKEN = 'sl.BMmkYMQT67RqUiQyUeUuyvFMsd3YpfMgp1XHAk7ac51JBCjffK_wXSqUSt5TsEGrOxEOvNM_tJjvhi_4ChJpeByO4PuyLj3ZXpQAkyEcJDbfA9z8-LqM9t42nmWqocclWb5rE9UHPMLk5WNG2LI'
+DROPBOX_ACCESS_TOKEN = 'sl.BMnr5fye90utRLK672WGZpwBBJbm2n2_suJeyquTdahFZuaCFP6NlvNKuRDOu-oIZW4nFV6GZ8i_E6oXq1ku0NxQ0EcGSm0Qq9OXbOn_eX-ZPgRO8ir1ROS7cozqPmELwgL05gCTc-T_CRpQoOE'
 DBMID = 'dbmid:AADG0vV5jytTmJYHxONlD4JODdLNLssdWyA'
 _team_name_space_id = '9796794208'
 
@@ -20,9 +20,13 @@ def update_directory():
     with open('config.txt') as f:
         lines = f.readlines()
     global directory, DBMID, DROPBOX_ACCESS_TOKEN, _team_name_space_id
+
+    lines = [line.rstrip('\n') for line in lines]
+
     directory = lines[0]
     if len(lines) > 1:
         DROPBOX_ACCESS_TOKEN = lines[1]
+        print(f"New access token {DROPBOX_ACCESS_TOKEN}")
     if len(lines) > 2:
         DBMID = lines[2]
     if len(lines) > 3:
@@ -102,7 +106,7 @@ def find_folder(dbx, name, category):
 
     except Found:
         path += '/Personal'
-        proof_of_address = ["Car Insurance", "Vehicle Registration", "Lease", "Mortgage Statement"]
+        proof_of_address = ["Utility", "Car Insurance", "Vehicle Registration", "Lease", "Mortgage Statement"]
         if category in proof_of_address:
             category = 'Proof of Address'
         for entry in dbx.files_list_folder('/'+path).entries:
