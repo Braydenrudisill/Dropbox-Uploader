@@ -4,12 +4,15 @@ import dropbox
 import os
 import sys
 import re
+from dropbox import DropboxOAuth2FlowNoRedirect
 from dropbox.exceptions import AuthError
 from tqdm import tqdm
 
 directory = ""
 
-DROPBOX_ACCESS_TOKEN = 'sl.BMnr5fye90utRLK672WGZpwBBJbm2n2_suJeyquTdahFZuaCFP6NlvNKuRDOu-oIZW4nFV6GZ8i_E6oXq1ku0NxQ0EcGSm0Qq9OXbOn_eX-ZPgRO8ir1ROS7cozqPmELwgL05gCTc-T_CRpQoOE'
+APP_KEY = "tazmj3z0w1ps942"
+APP_SECRET = "gfb5o5gjo6krlkz"
+DROPBOX_ACCESS_TOKEN = ''
 DBMID = 'dbmid:AADG0vV5jytTmJYHxONlD4JODdLNLssdWyA'
 _team_name_space_id = '9796794208'
 
@@ -26,7 +29,6 @@ def update_directory():
     directory = lines[0]
     if len(lines) > 1:
         DROPBOX_ACCESS_TOKEN = lines[1]
-        print(f"New access token {DROPBOX_ACCESS_TOKEN}")
     if len(lines) > 2:
         DBMID = lines[2]
     if len(lines) > 3:
@@ -43,11 +45,35 @@ def dropbox_connect(token,id):
     Returns:
         dbx: a connection to the users dropbox
     """
+    
     try:
         dbx = dropbox.DropboxTeam(token).with_path_root(dropbox.common.PathRoot.root(_team_name_space_id)).as_admin(id) 
         # dbx = dropbox.Dropbox(token)
-    except AuthError as e:
-        print('Error connecting to Dropbox with access token: ' + str(e))
+    except:
+        print('Error connecting to Dropbox with access token')
+        auth_flow = DropboxOAuth2FlowNoRedirect(APP_KEY, APP_SECRET)
+        authorize_url = auth_flow.start()
+        print("1. Go to: " + authorize_url)
+        print("2. Click \"Allow\" (you might have to log in first).")
+        print("3. Copy the authorization code.")
+        auth_code = input("Enter the authorization code here: ").strip()
+
+        try:
+            oauth_result = auth_flow.finish(auth_code)
+        except Exception as e:
+            print('Error: %s' % (e,))
+            exit(1)
+
+        # Update config.txt with new access code
+        with open("config.txt","r+") as f:
+            lines = f.readlines()
+            f.seek(0)
+            if(len(lines)>1): lines[1] = oauth_result.access_token
+            else: lines.append(oauth_result.access_token) 
+            lines = [f"{line}\n" for line in lines]
+            f.writelines(lines)
+            f.truncate()
+        dbx = dropbox.DropboxTeam(oauth2_access_token=oauth_result.access_token).with_path_root(dropbox.common.PathRoot.root(_team_name_space_id)).as_admin(id) 
     return dbx
 
 def dropbox_upload_file(dbx, local_path, local_file, dropbox_file_path):
