@@ -7,6 +7,7 @@ import re
 from dropbox import DropboxOAuth2FlowNoRedirect
 from dropbox.exceptions import AuthError
 from tqdm import tqdm
+import multiprocessing
 
 directory = ""
 
@@ -20,8 +21,15 @@ sys.tracebacklimit = 0
 class Found(Exception): pass
 
 def update_directory():
-    with open('config.txt') as f:
+    script_dir = os.path.dirname(__file__)
+    rel_path = "../config.txt"
+    abs_file_path = os.path.join(script_dir, rel_path)
+
+    with open(abs_file_path) as f:
         lines = f.readlines()
+
+    lines = [line.rstrip('\n') for line in lines]
+
     global directory, DBMID, DROPBOX_ACCESS_TOKEN, _team_name_space_id
 
     lines = [line.rstrip('\n') for line in lines]
@@ -65,7 +73,10 @@ def dropbox_connect(token,id):
             exit(1)
 
         # Update config.txt with new access code
-        with open("config.txt","r+") as f:
+        script_dir = os.path.dirname(__file__)
+        rel_path = "../config.txt"
+        abs_file_path = os.path.join(script_dir, rel_path)
+        with open(abs_file_path,"r+") as f:
             lines = f.readlines()
             f.seek(0)
             if(len(lines)>1): lines[1] = oauth_result.access_token
@@ -124,7 +135,7 @@ def find_folder(dbx, name, category):
     path = ""
 
     try:
-        for folder_name in tqdm(folder_list, ncols=100, desc="Searching for "+name):
+        for folder_name in tqdm(folder_list, desc="Searching for "+name, position=0, leave=True):
             for entry in dbx.files_list_folder('/'+folder_name).entries:
                 if name in entry.name:
                     path = '/' + folder_name + '/' + entry.name
@@ -186,6 +197,9 @@ def main():
         else:
             missed.append(filename)
 
+    if '.DS_Store' in missed: 
+            missed.remove('.DS_Store')
+            total_count -= 1
     if success_count != 0:  print(f"👍 Successfully uploaded {success_count} documents to dropbox!")
     if missed != []:        print(f"Didn't upload files {missed} \nMaybe check for unneccessary spaces? Or remove middle names?")
     if success_count == 0 and missed == []: print(f"Found {total_count} files, stopping upload")
@@ -198,6 +212,7 @@ def run_tests():
     print(find_folder(dbx, "Arthur Drexler", "Phone"))
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
     try:
         update_directory()
         main()
